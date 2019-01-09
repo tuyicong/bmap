@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=OSgwWgE9Ha4RfTyyNU7UPpBv"> </script>
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="map">
+      <div class="main">
+        <div class="ctrl">
+          <ul class="top">
+            <li @click="zhejiangClick">浙江省</li>
+            <li v-for="(item,index) in  citys.citys" @click="getArea(item.value,item.name,item.color,index)"   :class="{active:index == num}">
+              {{ item.name }}
+            </li>
+          </ul>
+          <ul class="bottom">
+            <li v-for="(item,index) in newArr" :key="item.value" @click="getCounty(item.value,item.name,index)">
+                {{ item.name }}
+            </li>
+          </ul>
+        </div>
+        <div class="showMap">
+          <div id="allshow" style="width:100%;height:100%"></div>
+        </div>
+      </div>
+    </div>
+    <script src="city.js"></script>
+    <script>
+      var app = new Vue({
+        el: "#map",
+        data() {
+          return {
+            demo: [[1,2,2],[3, 4, 4, 5],[6, 7, 8, 9,[11,12,[12,13,[14]]]],11],
+            citys: "",
+            temporary: [],
+            newArr: [],
+            PointArr: [],
+            count: "",
+            ply: "",
+            num:  -1,
+            district_label_points: [],
+            district_label_points_tem:[], //市下属县坐标临时存放数组
+            districts_tem :[],            //市下属县区名临时存放数组
+            city_label_points: [
+                { city: "杭州市", lon: "119.390955", lat: "29.926819" }, //杭州市
+                { city: "宁波市", lon: "121.350267", lat: "29.87873" },  //宁波市
+                { city: "温州市", lon: "120.03486", lat: "28.058665" },  //温州市
+                { city: "嘉兴市", lon: "120.605177", lat: "30.669191" }, //嘉兴市
+                { city: "湖州市", lon: "119.712908", lat: "30.740731" }, //湖州市
+                { city: "绍兴市", lon: "120.366012", lat: "29.862695" }, //绍兴市
+                { city: "金华市", lon: "119.703709", lat: "29.098049" }, //金华市
+                { city: "衢州市", lon: "118.581474", lat: "28.968695" }, //衢州市
+                { city: "舟山市", lon: "121.902186", lat: "30.246814" }, //舟山市
+                { city: "台州市", lon: "120.881136", lat: "28.79867" },  //台州市
+                { city: "丽水市", lon: "119.15179", lat: "28.425255" }   //丽水市
+            ],
+            color_arr: [
+                        '#aa00ff', 
+                        '#ffaa00', 
+                        '#00aaff', 
+                        '#666666', 
+                        '#d5ff00', 
+                        '#00ffd5', 
+                        '#0000ff', 
+                        '#00ff00', 
+                        '#ff0055', 
+                        '#ff0000', 
+                        '#ff5500', 
+                        '#5500ff', 
+                        '#006699',  
+                        '#990000'
+                    ], 
+          };
+        },
+        methods: {
+      //初始化
+        init() {
+               console.log(this.demo.toString().split(',').filter((item,i,arr)=>i === arr.indexOf(item)).map(item=>+item).sort((a,b)=>a-b)) 
+                this.citys = area;
+                this.district_label_points = district_label_points;
+                var map = new BMap.Map("allshow");
+                map.centerAndZoom(new BMap.Point(120.429827, 29.125314), 8);
+                map.addControl(
+                new BMap.MapTypeControl({
+                    mapTypes: [BMAP_NORMAL_MAP, BMAP_HYBRID_MAP]
+                })
+                );
+                map.setCurrentCity("浙江");
+                map.enableScrollWheelZoom(true);
+                window.map = map;
+          },
+      //市级事件  
+          getArea(id, name, color,index) {
+            map.clearOverlays();
+            this.num = index;
+            this.temporary = this.citys.districts;
+            for (key in this.temporary) {
+              if (key == id) {
+                this.newArr = this.temporary[key];
+              //  console.log( this.newArr );
+                
+            // 市级区域颜色
+            this.newArr.forEach(item => {
+                  var bdary = new BMap.Boundary();
+                  bdary.get(item.name, rs => {
+                    this.count = rs.boundaries.length;
+                    if (this.count === 0) {
+                      return false;
+                    }
+                    this.PointArr = [];
+                    for (var i = 0; i < this.count; i++) {
+                      var a = new BMap.Polygon(rs.boundaries[i], {
+                        fillColor: item.color,
+                        fillOpacity: 0.2,
+                        strokeWeight: 2,
+                        strokeColor: item.color
+                      });
+                      map.addOverlay(a);
+                    }
+                  });
+                });
+              }
+            }
+            // 设置地名
+            this.districts_tem = []
+            this.district_label_points_tem = this.district_label_points[index] 
+            this.newArr.forEach(item=>{
+                this.districts_tem.push(item.name)
+            })           
+            // 添加city字段 填入对应项
+            this.district_label_points_tem.forEach(item=>{
+                    item.city=""                            
+             })
+            for(var key in this.district_label_points_tem){
+                for( var i in this.districts_tem){
+                    if(key === i){
+                        this.district_label_points_tem[key].city=this.districts_tem[i]
+                    }
+                }
+            }
+            // 添加各区域名称
+            this.district_label_points_tem.forEach(item=>{
+                            var point = new BMap.Point( item.lon ,item.lat)
+                            map.centerAndZoom(point,10)
+                            var opts = {
+                            position : point,
+                            
+                        }
+                        var label = new BMap.Label( item.city ,opts)
+                            label.setStyle({
+                                color:"red",
+                                fontSize:"12px",
+                                height:"20px",
+                                lineHeight:"20px",
+                                fontFamily:"微软雅黑"
+                            })
+                            map.addOverlay(label)
+                        })
+      
+          },
+      //县级事件
+        getCounty(value,name,index){
+            console.log(value,name,index);
+            var bdary = new BMap.Boundary();
+              map.clearOverlays();
+              bdary.get(name, rs => {
+                this.count = rs.boundaries.length;
+                if (this.count === 0) {
+                  return false;
+                }
+                this.PointArr = [];
+                for (var i = 0; i < this.count; i++) {
+                  var a = new BMap.Polygon(rs.boundaries[i], {
+                    fillColor:this.color_arr[index],
+                    fillOpacity: 0.4,
+                    strokeWeight: 1,
+                    strokeColor: this.color_arr[index]
+                  });
+                  map.addOverlay(a);
+                }
+               
+              });
+          },
+      //点击浙江省    
+        zhejiangClick() {
+            this.num = -1
+            this.newArr = []
+            this.citys.citys.forEach(item => {
+              var bdary = new BMap.Boundary();
+              map.clearOverlays();
+              bdary.get(item.name, rs => {
+                this.count = rs.boundaries.length;
+                if (this.count === 0) {
+                  return false;
+                }
+                this.PointArr = [];
+                for (var i = 0; i < this.count; i++) {
+                  var a = new BMap.Polygon(rs.boundaries[i], {
+                    fillColor: item.color,
+                    fillOpacity: 0.2,
+                    strokeWeight: 1,
+                    strokeColor: "red"
+                  });
+                  map.addOverlay(a);
+                }
+              });
+            });
+            
+            
+            this.city_label_points.forEach(item=>{
+                var point = new BMap.Point( item.lon ,item.lat)
+                map.centerAndZoom(point,8)
+                var opts = {
+                position : point,
+                offset   : new BMap.Size(30,-30)
+            }
+            var label = new BMap.Label( item.city ,opts)
+                label.setStyle({
+                    color:"red",
+                    fontSize:"12px",
+                    height:"20px",
+                    lineHeight:"20px",
+                    fontFamily:"微软雅黑"
+                })
+                map.addOverlay(label)
+            })
+          
+          },
+
+       //地图移动事件
+        moveMap(){
+             map.addEventListener("moveend", ( )=>{
+              
+             })
+            
+          }
+        },
+        mounted: function() {
+          this.init();
+          this.zhejiangClick();
+          this.moveMap()
+         
+        }
+      });
+    </script>
+  </body>
+</html>
